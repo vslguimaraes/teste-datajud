@@ -115,6 +115,58 @@ Marcos: antecipação de tutela em 09/01/2024; redistribuição do Juizado Espec
 para a Vara da Fazenda Pública em 04/06/2024; decisão de saneamento em
 21/11/2024; último movimento = conclusão para decisão em 26/03/2026.
 
-`5036221-02.2023.4.03.6100` (trf3) ainda não foi executado — o índice
-`api_publica_trf3` foi confirmado acessível via `match_all` (>10.000 documentos),
-mas a busca pelo número específico está pendente.
+## Resultado do teste — TRF3 (executado em 25/08/2026)
+
+`5036221-02.2023.4.03.6100` → `HTTP 200`, `hits.total.value: 0`,
+`_shards.failed: 0`, `timed_out: false`.
+
+**Resultado vazio, não erro.** A requisição funcionou; o índice não tem o
+documento. Causas descartadas:
+
+- **Número inválido** — descartado. O DV confere pelo módulo 97
+  (`validar_numero_cnj.py`).
+- **Alias errado** — descartado. `4.03` no número é `J.TR` = Justiça Federal /
+  TRF3, e `api_publica_trf3` responde com >10.000 documentos no `match_all`.
+
+Hipóteses restantes, em ordem de probabilidade:
+
+1. **Segredo de justiça.** A API pública só expõe `nivelSigilo: 0`. Processos
+   sigilosos retornam 0 hits — indistinguível de "não existe".
+2. **Atraso ou lacuna de replicação do TRF3.**
+3. Número correto porém transcrito de fonte com erro em outro campo.
+
+### Queries para distinguir
+
+Cobertura da subseção/ano (`6100` = São Paulo/SP, ano 2023):
+
+```json
+{"query": {"wildcard": {"numeroProcesso": "*20234036100"}}, "size": 3}
+```
+
+Com hits, a cobertura existe e o problema é específico do processo (sigilo);
+sem hits, é lacuna de replicação.
+
+Qualquer processo com o mesmo sequencial, em qualquer ano/origem:
+
+```json
+{"query": {"prefix": {"numeroProcesso": "5036221"}}, "size": 10}
+```
+
+## Validador de número CNJ
+
+Antes de culpar a API, confirme que o número é válido:
+
+```bash
+python3 validar_numero_cnj.py "5036221-02.2023.4.03.6100"
+```
+
+Calcula o DV pelo módulo 97 (Res. CNJ 65/2008), identifica o segmento da
+Justiça e deduz o alias do índice DataJud. Sai com código 1 se algum número
+for inválido. Sem argumentos, valida os dois processos deste teste.
+
+## Resumo dos testes
+
+| Processo | Alias | HTTP | Hits | Conclusão |
+|---|---|---|---|---|
+| 1083208-94.2023.8.26.0053 | tjsp | 200 | 1 | Ativo, sem sentença; última atualização 28/04/2026 |
+| 5036221-02.2023.4.03.6100 | trf3 | 200 | 0 | Número válido, índice acessível — não indexado (provável sigilo) |
