@@ -1,0 +1,325 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Consulta de Processos — DataJud</title>
+<style>
+:root {
+  --fundo: #fbfaf8; --superficie: #fff; --borda: #e4e0d8; --borda-forte: #cfc9be;
+  --texto: #1c1a17; --texto-fraco: #6b655c; --texto-fraquinho: #918a7e;
+  --acento: #7a4a2b; --acento-fraco: #f2ebe4;
+  --ok-bg: #e8f1e9; --ok-fg: #2f5d3a; --ok-borda: #bcd7c2;
+  --alerta-bg: #fdf2dd; --alerta-fg: #7a5310; --alerta-borda: #ecd6a4;
+  --neutro-bg: #eeecea; --neutro-fg: #4a453e; --neutro-borda: #d8d4cd;
+  --erro-bg: #fbeceb; --erro-fg: #8a2f27; --erro-borda: #e8c5c1;
+  --raio: 10px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-tema="claro"]) {
+    --fundo: #171614; --superficie: #201e1b; --borda: #35322d; --borda-forte: #4a463f;
+    --texto: #f0ece6; --texto-fraco: #a9a298; --texto-fraquinho: #7d766c;
+    --acento: #d9a273; --acento-fraco: #2b2521;
+    --ok-bg: #1d2c21; --ok-fg: #9ed3ac; --ok-borda: #354d3d;
+    --alerta-bg: #2e2718; --alerta-fg: #e5c179; --alerta-borda: #4d4128;
+    --neutro-bg: #27251f; --neutro-fg: #b5aea4; --neutro-borda: #3d3a34;
+    --erro-bg: #2e1c1a; --erro-fg: #e8a49c; --erro-borda: #4d302c;
+  }
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: var(--fundo); color: var(--texto);
+  font: 16px/1.55 ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+.envelope { max-width: 760px; margin: 0 auto; padding: 40px 20px 80px; }
+header { margin-bottom: 28px; }
+h1 { font-size: 1.35rem; margin: 0 0 4px; letter-spacing: -0.01em; }
+.subtitulo { color: var(--texto-fraco); font-size: 0.9rem; margin: 0; }
+
+form { display: flex; gap: 8px; margin: 24px 0 8px; }
+input {
+  flex: 1; padding: 13px 15px; font-size: 1rem; font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  background: var(--superficie); color: var(--texto);
+  border: 1px solid var(--borda-forte); border-radius: var(--raio); min-width: 0;
+}
+input:focus { outline: 2px solid var(--acento); outline-offset: -1px; border-color: transparent; }
+button {
+  padding: 13px 22px; font-size: 0.95rem; font-weight: 600; cursor: pointer;
+  background: var(--acento); color: #fff; border: 0; border-radius: var(--raio);
+}
+button:hover:not(:disabled) { filter: brightness(1.1); }
+button:disabled { opacity: 0.55; cursor: default; }
+.dica { font-size: 0.82rem; color: var(--texto-fraquinho); margin: 0 0 32px; }
+
+.cartao {
+  background: var(--superficie); border: 1px solid var(--borda);
+  border-radius: 14px; padding: 24px; margin-bottom: 16px;
+}
+.numero { font-family: ui-monospace, Menlo, monospace; font-size: 1.1rem; margin: 0 0 3px; }
+.tribunal { color: var(--texto-fraco); font-size: 0.86rem; margin: 0 0 18px; }
+
+.situacao {
+  display: inline-flex; align-items: center; gap: 8px; padding: 7px 14px;
+  border-radius: 999px; font-size: 0.87rem; font-weight: 600;
+  border: 1px solid transparent; margin-bottom: 6px;
+}
+.situacao::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+.s-em_andamento { background: var(--ok-bg); color: var(--ok-fg); border-color: var(--ok-borda); }
+.s-julgado { background: var(--alerta-bg); color: var(--alerta-fg); border-color: var(--alerta-borda); }
+.s-baixado { background: var(--neutro-bg); color: var(--neutro-fg); border-color: var(--neutro-borda); }
+.situacao-detalhe { color: var(--texto-fraco); font-size: 0.88rem; margin: 0 0 20px; }
+
+.atualizacao {
+  display: flex; gap: 10px; align-items: flex-start; padding: 12px 14px;
+  border-radius: var(--raio); font-size: 0.85rem; margin-bottom: 22px;
+  background: var(--neutro-bg); color: var(--neutro-fg); border: 1px solid var(--neutro-borda);
+}
+.atualizacao.defasado {
+  background: var(--alerta-bg); color: var(--alerta-fg); border-color: var(--alerta-borda);
+}
+.atualizacao strong { font-weight: 650; }
+
+dl { display: grid; grid-template-columns: minmax(120px, auto) 1fr; gap: 9px 20px; margin: 0 0 4px; font-size: 0.9rem; }
+dt { color: var(--texto-fraquinho); }
+dd { margin: 0; }
+
+h2 {
+  font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.07em;
+  color: var(--texto-fraquinho); margin: 0 0 14px; font-weight: 650;
+}
+.cabecalho-linha { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
+.alternar {
+  background: none; border: 0; color: var(--acento); padding: 0;
+  font-size: 0.8rem; font-weight: 600; cursor: pointer; text-decoration: underline;
+}
+
+.linha-tempo { list-style: none; margin: 0; padding: 0; position: relative; }
+.linha-tempo::before {
+  content: ""; position: absolute; left: 5px; top: 8px; bottom: 8px;
+  width: 1px; background: var(--borda);
+}
+.mov { position: relative; padding: 0 0 18px 26px; }
+.mov::before {
+  content: ""; position: absolute; left: 0; top: 7px; width: 11px; height: 11px;
+  border-radius: 50%; background: var(--fundo); border: 2px solid var(--borda-forte);
+}
+.mov.marco::before { background: var(--acento); border-color: var(--acento); }
+.mov-data { font-size: 0.76rem; color: var(--texto-fraquinho); font-variant-numeric: tabular-nums; }
+.mov-nome { font-size: 0.93rem; }
+.mov.marco .mov-nome { font-weight: 600; }
+.mov-extra { font-size: 0.8rem; color: var(--texto-fraco); }
+
+.aviso { border-radius: 14px; padding: 22px 24px; border: 1px solid; margin-bottom: 16px; }
+.aviso h3 { margin: 0 0 8px; font-size: 1rem; }
+.aviso p { margin: 0 0 12px; font-size: 0.9rem; }
+.aviso ul { margin: 0; padding-left: 20px; font-size: 0.88rem; }
+.aviso li { margin-bottom: 6px; }
+.aviso li:last-child { margin-bottom: 0; }
+.a-neutro { background: var(--neutro-bg); color: var(--neutro-fg); border-color: var(--neutro-borda); }
+.a-erro { background: var(--erro-bg); color: var(--erro-fg); border-color: var(--erro-borda); }
+
+.carregando { color: var(--texto-fraco); font-size: 0.9rem; padding: 20px 0; }
+.oculto { display: none; }
+footer { margin-top: 40px; font-size: 0.78rem; color: var(--texto-fraquinho); }
+footer a { color: inherit; }
+</style>
+</head>
+<body>
+<div class="envelope">
+
+<header>
+  <h1>Consulta de processos</h1>
+  <p class="subtitulo">Dados públicos do DataJud (CNJ)</p>
+</header>
+
+<form id="form">
+  <input id="entrada" inputmode="numeric" autocomplete="off" spellcheck="false"
+         placeholder="1083208-94.2023.8.26.0053" aria-label="Número do processo">
+  <button type="submit" id="botao">Consultar</button>
+</form>
+<p class="dica">Digite só o número. O tribunal é identificado automaticamente.</p>
+
+<div id="saida" aria-live="polite"></div>
+
+<footer>
+  Fonte: API Pública do DataJud (CNJ). Os dados são replicados em lote pelos
+  tribunais e podem estar desatualizados — confira sempre a data de atualização.
+  Processos em segredo de justiça não são publicados.
+</footer>
+
+</div>
+
+<script>
+const ENDPOINT = 'https://edquznquhrcodecmtjlq.supabase.co/functions/v1/processo';
+const CHAVE = 'sb_publishable_dYJqF9DqwZQHmbaho6TkKQ_uPorMPKh';
+
+const form = document.getElementById('form');
+const entrada = document.getElementById('entrada');
+const botao = document.getElementById('botao');
+const saida = document.getElementById('saida');
+
+const esc = (s) => String(s ?? '').replace(/[&<>"']/g,
+  (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+const dataBR = (iso) => {
+  if (!iso) return '—';
+  const d = new Date(iso);
+  return isNaN(d) ? '—' : d.toLocaleDateString('pt-BR', { timeZone: 'UTC' });
+};
+
+// Mesma conta do backend (modulo 97, Res. CNJ 65/2008). Repetida aqui de
+// proposito: pega erro de digitacao sem gastar uma requisicao da cota
+// compartilhada do CNJ, que e o recurso mais escasso deste beta.
+function dvConfere(d) {
+  const base = d.slice(0, 7) + d.slice(9, 20) + '00';
+  let r = 0;
+  for (const c of base) r = (r * 10 + (c.charCodeAt(0) - 48)) % 97;
+  return String(98 - r).padStart(2, '0') === d.slice(7, 9);
+}
+
+function avisoHTML(classe, titulo, corpo, itens) {
+  return `<div class="aviso ${classe}">
+    <h3>${esc(titulo)}</h3>
+    <p>${esc(corpo)}</p>
+    ${itens?.length ? `<ul>${itens.map((i) => `<li>${esc(i)}</li>`).join('')}</ul>` : ''}
+  </div>`;
+}
+
+function movHTML(m) {
+  const extra = [m.complementos?.join(', '), m.orgao].filter(Boolean).join(' · ');
+  return `<li class="mov ${m.marco ? 'marco' : ''}">
+    <div class="mov-data">${dataBR(m.data)}${m.grau ? ' · ' + esc(m.grau) : ''}</div>
+    <div class="mov-nome">${esc(m.nome)}</div>
+    ${extra ? `<div class="mov-extra">${esc(extra)}</div>` : ''}
+  </li>`;
+}
+
+function fichaHTML(f, origem) {
+  const marcos = f.movimentos.filter((m) => m.marco);
+  const recentes = [...f.movimentos].reverse();
+  const marcosRecentes = [...marcos].reverse();
+
+  const dias = f.atualizadoHaDias;
+  const quando = dias === 0 ? 'hoje' : dias === 1 ? 'ontem' : `há ${dias} dias`;
+
+  return `
+  <div class="cartao">
+    <p class="numero">${esc(f.numeroFormatado)}</p>
+    <p class="tribunal">${esc(f.tribunal)}${f.graus?.length ? ' · ' + esc(f.graus.join(', ')) : ''}</p>
+
+    <div class="situacao s-${esc(f.situacao)}">${
+      { em_andamento: 'Em andamento', julgado: 'Julgado', baixado: 'Baixado' }[f.situacao] ?? esc(f.situacao)
+    }</div>
+    <p class="situacao-detalhe">${esc(f.situacaoDescricao)}</p>
+
+    <div class="atualizacao ${f.dadoDefasado ? 'defasado' : ''}">
+      <span>${f.dadoDefasado ? '⚠' : 'ℹ'}</span>
+      <span>Última atualização no DataJud: <strong>${dataBR(f.atualizadoEm)}</strong> (${quando}).${
+        f.dadoDefasado
+          ? ' O tribunal ainda não enviou dados mais recentes — movimentações posteriores a essa data não aparecem aqui.'
+          : ''
+      }</span>
+    </div>
+
+    <dl>
+      <dt>Classe</dt><dd>${esc(f.classe ?? '—')}</dd>
+      <dt>Órgão julgador</dt><dd>${esc(f.orgaoJulgadorAtual ?? '—')}</dd>
+      <dt>Ajuizamento</dt><dd>${dataBR(f.dataAjuizamento)}</dd>
+      ${f.assuntos?.length ? `<dt>Assuntos</dt><dd>${f.assuntos.map(esc).join(' · ')}</dd>` : ''}
+      ${f.sistema ? `<dt>Sistema</dt><dd>${esc(f.sistema)}</dd>` : ''}
+    </dl>
+  </div>
+
+  <div class="cartao">
+    <div class="cabecalho-linha">
+      <h2>Andamento</h2>
+      <button class="alternar" id="alternar" type="button"
+        data-tudo="0">ver todos os ${f.totalMovimentos}</button>
+    </div>
+    <ul class="linha-tempo" id="linha">${marcosRecentes.map(movHTML).join('')}</ul>
+    <ul class="linha-tempo oculto" id="linha-tudo">${recentes.map(movHTML).join('')}</ul>
+    <p class="dica" style="margin:14px 0 0">
+      Mostrando ${marcos.length} movimento${marcos.length === 1 ? '' : 's'} relevante${
+        marcos.length === 1 ? '' : 's'
+      } de ${f.totalMovimentos}. Os demais são expediente (publicação, remessa, conclusão, petição).
+    </p>
+  </div>
+
+  <p class="dica">${origem === 'cache' ? 'Resposta do cache.' : 'Consultado agora no DataJud.'}</p>`;
+}
+
+function render(r) {
+  if (r.estado === 'encontrado') {
+    saida.innerHTML = fichaHTML(r.ficha, r.origemDoDado);
+    const alt = document.getElementById('alternar');
+    const so = document.getElementById('linha');
+    const tudo = document.getElementById('linha-tudo');
+    alt.addEventListener('click', () => {
+      const vendoTudo = alt.dataset.tudo === '1';
+      alt.dataset.tudo = vendoTudo ? '0' : '1';
+      so.classList.toggle('oculto', !vendoTudo);
+      tudo.classList.toggle('oculto', vendoTudo);
+      alt.textContent = vendoTudo
+        ? `ver todos os ${r.ficha.totalMovimentos}`
+        : 'ver só os relevantes';
+    });
+    return;
+  }
+
+  if (r.estado === 'nao_indexado') {
+    // Nunca dizemos "o processo nao existe": pela API publica, sigilo, numero
+    // inexistente e lacuna de replicacao sao indistinguiveis entre si.
+    saida.innerHTML = avisoHTML('a-neutro',
+      'Não encontrado no índice público',
+      `O número ${r.numeroFormatado} é válido e aponta para o ${r.tribunalDeduzido}, ` +
+      'mas não há registro dele na base pública. Isso pode significar:',
+      r.causasPossiveis);
+    return;
+  }
+
+  const titulos = {
+    numero_invalido: 'Número inválido',
+    tribunal_sem_indice: 'Tribunal sem base pública',
+    limite_excedido: 'Limite de consultas atingido',
+    erro_upstream: 'O DataJud não respondeu',
+    erro_configuracao: 'Serviço indisponível',
+  };
+  saida.innerHTML = avisoHTML('a-erro',
+    titulos[r.estado] ?? 'Não foi possível consultar',
+    r.mensagem ?? 'Tente novamente em alguns instantes.');
+}
+
+form.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const digitos = entrada.value.replace(/\D/g, '');
+
+  if (digitos.length !== 20) {
+    saida.innerHTML = avisoHTML('a-erro', 'Número incompleto',
+      `O número CNJ tem 20 dígitos; você digitou ${digitos.length}.`);
+    return;
+  }
+  if (!dvConfere(digitos)) {
+    saida.innerHTML = avisoHTML('a-erro', 'Número inválido',
+      'O dígito verificador não confere. Confira a digitação.');
+    return;
+  }
+
+  botao.disabled = true;
+  saida.innerHTML = '<p class="carregando">Consultando…</p>';
+
+  try {
+    const resp = await fetch(`${ENDPOINT}/${digitos}`, {
+      headers: { Authorization: `Bearer ${CHAVE}` },
+    });
+    render(await resp.json());
+  } catch {
+    saida.innerHTML = avisoHTML('a-erro', 'Falha de conexão',
+      'Não foi possível falar com o serviço. Verifique sua internet e tente de novo.');
+  } finally {
+    botao.disabled = false;
+  }
+});
+</script>
+</body>
+</html>
