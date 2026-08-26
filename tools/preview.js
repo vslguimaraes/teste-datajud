@@ -1,4 +1,5 @@
 const { chromium } = require('playwright');
+const { execFileSync } = require('child_process');
 const path = require('path');
 
 // Ficha real do TJSP, na forma exata que a funcao devolve.
@@ -20,7 +21,11 @@ const ENCONTRADO = { estado:'encontrado', alias:'tjsp', origemDoDado:'datajud', 
   situacao:'em_andamento', situacaoDescricao:'Em andamento, sem julgamento nem baixa registrados',
   ultimoMovimento: movs[movs.length-1],
   atualizadoEm:'2026-04-28T04:55:55.885Z', atualizadoHaDias:120, dadoDefasado:true,
-  totalMovimentos: movs.length, movimentos: movs,
+  totalMovimentos: movs.length, fases: JSON.parse(execFileSync('node',
+    ['--experimental-strip-types', '-e',
+     "import('./supabase/functions/processo/fases.ts').then(m=>console.log(JSON.stringify(m.resumirEmFases(JSON.parse(process.argv[1])))))",
+     JSON.stringify(movs)], { encoding: 'utf8', stdio: ['ignore','pipe','ignore'] })),
+  movimentos: movs,
 }};
 
 const NAO_INDEXADO = { estado:'nao_indexado', alias:'trf3',
@@ -60,7 +65,7 @@ const NAO_INDEXADO = { estado:'nao_indexado', alias:'trf3',
     await page.screenshot({ path: `capturas/${nome}.png`, fullPage: !!resposta });
     // Confere o que de fato foi renderizado.
     if (resposta?.estado === 'encontrado') {
-      const marcos = await page.locator('#linha .mov').count();
+      const marcos = await page.locator('#linha .mov').count();  // agora = fases
       // Conta a CLASSE, nao o tamanho da lista: #linha ja vem filtrado pelo
       // dado, entao seu tamanho nao prova que o destaque visual funciona.
       const destacados = await page.locator('#linha .mov.marco').count();

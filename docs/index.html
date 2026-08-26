@@ -307,10 +307,19 @@ function movHTML(m) {
   </li>`;
 }
 
+function faseHTML(fa) {
+  const detalhe = [fa.nome, fa.ocorrencias > 1 ? `${fa.ocorrencias}x` : '', fa.orgao]
+    .filter(Boolean).join(' · ');
+  return `<li class="mov marco">
+    <div class="mov-data">${dataBR(fa.data)}${fa.grau ? ' · ' + esc(grauEmPalavras(fa.grau)) : ''}</div>
+    <div class="mov-nome">${esc(fa.titulo)}</div>
+    ${detalhe ? `<div class="mov-extra">${esc(detalhe)}</div>` : ''}
+  </li>`;
+}
+
 function fichaHTML(f, origem) {
-  const marcos = f.movimentos.filter((m) => m.marco);
+  const fases = f.fases ?? [];
   const recentes = [...f.movimentos].reverse();
-  const marcosRecentes = [...marcos].reverse();
   const d = f.atualizadoHaDias;
   const quando = d === 0 ? 'hoje' : d === 1 ? 'ontem' : `há ${d} dias`;
   const rotulos = { em_andamento: 'Em andamento', julgado: 'Julgado', baixado: 'Baixado' };
@@ -351,11 +360,12 @@ function fichaHTML(f, origem) {
       <h2>Andamento</h2>
       <button class="alternar" id="alternar" type="button" data-tudo="0">ver todos os ${f.totalMovimentos}</button>
     </div>
-    <ul class="trilha" id="linha">${marcosRecentes.map(movHTML).join('')}</ul>
+    <ul class="trilha" id="linha">${fases.map(faseHTML).join('')}</ul>
     <ul class="trilha oculto" id="linha-tudo">${recentes.map(movHTML).join('')}</ul>
-    <p class="resumo">${marcos.length} de ${f.totalMovimentos} movimentos.
-      Os demais são expediente — publicação, remessa, conclusão, petição,
-      expedição de documento — e não alteram o estado do processo.</p>
+    <p class="resumo">As ${fases.length} etapas que mudaram o rumo do processo,
+      entre ${f.totalMovimentos} movimentos registrados. O restante é
+      expediente — petições, publicações, conclusões, certidões — que não
+      altera o estado do processo.</p>
   </section>
 
   <p class="origem">${origem === 'cache' ? 'Resposta do cache.' : 'Consultado agora no DataJud.'}</p>`;

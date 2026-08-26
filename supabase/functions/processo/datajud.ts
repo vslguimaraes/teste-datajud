@@ -11,6 +11,7 @@
 //    replicação retornam todos HTTP 200 com hits 0. Nunca dizemos "não existe".
 
 import type { NumeroCNJ } from './cnj.ts';
+import { type Fase, resumirEmFases } from './fases.ts';
 
 const BASE = 'https://api-publica.datajud.cnj.jus.br';
 
@@ -100,6 +101,8 @@ export interface Ficha {
   atualizadoHaDias: number;
   dadoDefasado: boolean;
   totalMovimentos: number;
+  /** O arco do processo em 4-8 itens. Ver fases.ts. */
+  fases: Fase[];
   movimentos: FichaMovimento[];
 }
 
@@ -202,6 +205,7 @@ export function normalizar(fontes: Fonte[], numero: NumeroCNJ, agora = new Date(
     // o dado pode não refletir a situação atual do processo.
     dadoDefasado: dias > 30,
     totalMovimentos: movimentos.length,
+    fases: resumirEmFases(movimentos),
     movimentos,
   };
 }
