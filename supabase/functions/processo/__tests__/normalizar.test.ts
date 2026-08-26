@@ -40,8 +40,10 @@ check('situacao = em_andamento (sem sentenca nem baixa)',
 check('nao marca Conclusao como julgamento',
   !f.movimentos.find((m) => m.nome === 'Conclusão')?.marco);
 
-check('marca Antecipacao de tutela? nao e julgamento de merito',
-  f.movimentos.find((m) => m.nome === 'Antecipação de tutela')?.marco === false);
+// Corrigido apos o teste com dado real: a versao anterior exigia marco=false
+// aqui, o que deixava a linha do tempo de 78 movimentos sem nenhum destaque.
+check('destaca Antecipacao de tutela',
+  f.movimentos.find((m) => m.nome === 'Antecipação de tutela')?.marco === true);
 
 check('dataAjuizamento converte formato compacto',
   f.dataAjuizamento === '2023-12-05T13:53:23.000Z', f.dataAjuizamento ?? 'null');

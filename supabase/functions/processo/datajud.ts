@@ -49,6 +49,27 @@ const COD_JULGAMENTO = new Set([193, 196, 198, 219, 220, 221, 237, 385, 461, 471
 const RE_JULGAMENTO = /senten|julgado|julgamento|extin[çc]|homologa[çc]|improceden|proceden/i;
 const RE_BAIXA = /baixa definitiva|arquivamento definitivo/i;
 
+// Movimentos de EXPEDIENTE: alto volume, baixo significado. No processo real
+// do TJSP eles são 68 dos 78 movimentos — listá-los com o mesmo peso dos
+// demais reproduz o JSON cru, que é o problema que este beta existe para
+// resolver.
+//
+// A lista é dos códigos a IGNORAR, não dos relevantes: os de expediente são
+// poucos, padronizados e comuns a todos os tribunais, enquanto os
+// significativos são uma cauda longa que varia por rito e por vara. Marcar
+// por exclusão erra para o lado de mostrar demais, que é o lado seguro.
+const COD_EXPEDIENTE = new Set([
+  60,     // Expedição de documento
+  92,     // Publicação
+  123,    // Remessa
+  51,     // Conclusão (ir ao magistrado não é decidir)
+  85,     // Petição
+  581,    // Documento
+  11383,  // Ato ordinatório
+  246,    // Juntada
+  67,     // Decurso de prazo
+]);
+
 export type Situacao = 'baixado' | 'julgado' | 'em_andamento';
 
 export interface FichaMovimento {
@@ -97,9 +118,18 @@ function normalizarData(v: string | undefined): string | null {
   return Number.isNaN(t) ? null : new Date(t).toISOString();
 }
 
+/**
+ * Um movimento merece destaque na leitura?
+ *
+ * Julgamento e baixa sempre merecem. Fora isso, vale tudo que não for
+ * expediente — assim decisões, tutelas, saneamento, redistribuição e
+ * audiências aparecem sem precisarem estar num catálogo que eu teria de
+ * manter à mão.
+ */
 function ehMarco(m: Movimento): boolean {
-  return COD_BAIXA.has(m.codigo) || COD_JULGAMENTO.has(m.codigo) ||
-    RE_BAIXA.test(m.nome ?? '') || RE_JULGAMENTO.test(m.nome ?? '');
+  if (COD_BAIXA.has(m.codigo) || COD_JULGAMENTO.has(m.codigo)) return true;
+  if (RE_BAIXA.test(m.nome ?? '') || RE_JULGAMENTO.test(m.nome ?? '')) return true;
+  return !COD_EXPEDIENTE.has(m.codigo);
 }
 
 /**
