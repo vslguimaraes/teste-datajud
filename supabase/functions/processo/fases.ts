@@ -85,6 +85,24 @@ const ROTEIRO: Regra[] = [
 // Teto de itens na visão do cliente. Acima disso a leitura vira lista de novo.
 export const TETO_FASES = 8;
 
+// Instâncias recursais. Importa porque o mesmo código de movimento significa
+// coisas diferentes conforme o grau.
+const GRAU_RECURSAL = new Set(['G2', 'G3', 'TR', 'TU', 'SUP']);
+
+/**
+ * Ajusta o rótulo da fase ao grau em que ela aconteceu.
+ *
+ * O código 193 chama-se 'Julgamento' e vale como decisão de mérito em
+ * qualquer instância — mas chamá-lo de 'Sentença' num documento de 2º grau
+ * inverte a história: no processo 0291410-41.0000.8.26.0090 apareciam um
+ * acórdão em 2012 e uma 'Sentença' em 2026, como se o feito tivesse
+ * retrocedido. Em instância recursal, o que houve foi julgamento do recurso.
+ */
+function tituloNoGrau(id: string, titulo: string, grau: string): string {
+  if (id === 'sentenca' && GRAU_RECURSAL.has(grau)) return 'Julgamento do recurso';
+  return titulo;
+}
+
 function casa(m: FichaMovimento, r: Regra): boolean {
   if (r.codigos?.includes(m.codigo)) return true;
   return r.regex ? r.regex.test(m.nome ?? '') : false;
@@ -111,7 +129,7 @@ export function resumirEmFases(movimentos: FichaMovimento[]): Fase[] {
     if (casos.length === 0) continue;
     const m = r.usar === 'primeiro' ? casos[0] : casos[casos.length - 1];
     encontradas.push({
-      id: r.id, titulo: r.titulo, peso: r.peso,
+      id: r.id, titulo: tituloNoGrau(r.id, r.titulo, m.grau), peso: r.peso,
       data: m.data, nome: m.nome, grau: m.grau, orgao: m.orgao,
       ocorrencias: casos.length,
     });

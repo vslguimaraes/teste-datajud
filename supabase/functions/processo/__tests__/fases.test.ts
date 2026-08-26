@@ -99,8 +99,7 @@ check('processo so de expediente mostra inicio e situacao atual',
   soExpediente[0].titulo === 'Primeiro registro' &&
   soExpediente[1].id === 'atual', soExpediente.map((f) => f.titulo).join(' | '));
 
-console.log(falhas === 0 ? '\nTODOS OS TESTES PASSARAM' : `\n${falhas} FALHA(S)`);
-process.exit(falhas === 0 ? 0 : 1);
+
 
 // ---------- regressao: processo sem Distribuicao ----------
 // 0047512-82.2007.8.26.0050 tem 51 movimentos e nenhum com codigo 26 ou 36.
@@ -126,3 +125,26 @@ const segundoGrau = resumirEmFases([
 check('reconhece Recurso Especial', segundoGrau.some((f) => f.id === 'recurso'));
 check('reconhece Nao-Provimento como decisao de 2o grau',
   segundoGrau.some((f) => f.id === 'acordao'));
+
+// ---------- regressao: 'Julgamento' em 2o grau nao e sentenca ----------
+// Visto em 0294316-41.2011.8.26.0000: o codigo 193 ('Julgamento') aparecia
+// como 'Sentenca' depois de um acordao de 2012, invertendo a historia.
+const emG2 = resumirEmFases([
+  { data: '2011-11-30T00:00:00Z', nome: 'Distribuição', codigo: 26, grau: 'G2', complementos: [] },
+  { data: '2012-05-30T00:00:00Z', nome: 'Provimento em Parte', codigo: 3, grau: 'G2', complementos: [] },
+  { data: '2026-02-03T00:00:00Z', nome: 'Julgamento', codigo: 193, grau: 'G2', complementos: [] },
+]);
+check('Julgamento em G2 vira Julgamento do recurso',
+  emG2.find((f) => f.id === 'sentenca')?.titulo === 'Julgamento do recurso',
+  emG2.find((f) => f.id === 'sentenca')?.titulo ?? 'ausente');
+
+const emG1 = resumirEmFases([
+  { data: '2011-11-30T00:00:00Z', nome: 'Distribuição', codigo: 26, grau: 'G1', complementos: [] },
+  { data: '2012-05-30T00:00:00Z', nome: 'Julgamento', codigo: 193, grau: 'G1', complementos: [] },
+]);
+check('Julgamento em G1 continua sendo Sentenca',
+  emG1.find((f) => f.id === 'sentenca')?.titulo === 'Sentença',
+  emG1.find((f) => f.id === 'sentenca')?.titulo ?? 'ausente');
+
+console.log(falhas === 0 ? '\nTODOS OS TESTES PASSARAM' : `\n${falhas} FALHA(S)`);
+process.exit(falhas === 0 ? 0 : 1);
