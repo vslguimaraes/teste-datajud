@@ -74,7 +74,13 @@ Deno.serve(async (req) => {
       .gt('expira_em', new Date().toISOString())
       .maybeSingle()).data;
 
-    if (guardado) {
+    // Ficha gravada por uma versao anterior da funcao, sem o resumo em fases.
+    // Servi-la produziria uma linha do tempo vazia ate o TTL vencer, entao
+    // tratamos como se nao houvesse cache e consultamos de novo.
+    const desatualizada = guardado?.estado === 'encontrado' &&
+      !(guardado.ficha as { fases?: unknown[] } | null)?.fases?.length;
+
+    if (guardado && !desatualizada) {
       supabase.from('consulta_cache')
         .update({ acertos: (guardado.acertos ?? 0) + 1 })
         .eq('numero', numero.digitos)
