@@ -23,6 +23,7 @@ for (const f of fasesTjsp) {
 }
 check('TJSP fica na faixa 4-8', fasesTjsp.length >= 4 && fasesTjsp.length <= 8, String(fasesTjsp.length));
 check('TJSP comeca no ajuizamento', fasesTjsp[0].id === 'ajuizamento', fasesTjsp[0].id);
+check('nao ha fase de emenda a inicial', !fasesTjsp.some((f) => f.id === 'emenda'));
 check('TJSP identifica a liminar', fasesTjsp.some((f) => f.id === 'liminar'));
 check('TJSP identifica o saneamento', fasesTjsp.some((f) => f.id === 'saneamento'));
 check('TJSP termina na situacao atual', fasesTjsp.at(-1)?.id === 'atual', fasesTjsp.at(-1)?.id ?? '');
@@ -53,7 +54,7 @@ const ORDEM_FIXA: Record<number, number> = { 26: 0, 792: 20, 15085: 10, 12261: 1
 let seq = 0;
 const movsTrf1 = TRF1.flatMap(([n, codigo, nome]) =>
   Array.from({ length: n }, (_, i) => ({
-    codigo, nome, grau: 'G1', complementos: [], marco: false,
+    codigo, nome, grau: 'G1', complementos: [],
     data: new Date(Date.UTC(2024, 0, 1 + (ORDEM_FIXA[codigo] ?? (30 + (seq++ % 150))), 0, i)).toISOString(),
   })),
 ).sort((a, b) => a.data.localeCompare(b.data));
@@ -71,6 +72,8 @@ check('TRF1 identifica a Liminar (792)', fasesTrf1.some((f) => f.id === 'liminar
 check('TRF1 identifica a Procedencia como sentenca', fasesTrf1.some((f) => f.id === 'sentenca'));
 check('TRF1 identifica a mudanca de partes', fasesTrf1.some((f) => f.id === 'partes'));
 check('TRF1 identifica a pericia', fasesTrf1.some((f) => f.id === 'pericia'));
+check('nao rotula levantamento de suspensao como Suspensao',
+  !fasesTrf1.some((f) => f.id === 'suspensao'));
 check('TRF1 ignora expediente de alto volume',
   !fasesTrf1.some((f) => [85, 581, 12215, 51, 12282, 1051, 60, 11010, 1061, 92].includes(
     movsTrf1.find((m) => m.data === f.data)?.codigo ?? -1)) || fasesTrf1.at(-1)?.id === 'atual');
@@ -86,8 +89,8 @@ check('saida independe do tamanho da entrada',
 check('processo sem movimentos nao quebra', resumirEmFases([]).length === 0);
 
 const soExpediente = resumirEmFases([
-  { data: '2025-01-01T00:00:00Z', nome: 'Publicação', codigo: 92, grau: 'G1', complementos: [], marco: false },
-  { data: '2025-02-01T00:00:00Z', nome: 'Conclusão', codigo: 51, grau: 'G1', complementos: [], marco: false },
+  { data: '2025-01-01T00:00:00Z', nome: 'Publicação', codigo: 92, grau: 'G1', complementos: [] },
+  { data: '2025-02-01T00:00:00Z', nome: 'Conclusão', codigo: 51, grau: 'G1', complementos: [] },
 ]);
 check('processo so de expediente mostra ao menos a situacao atual',
   soExpediente.length === 1 && soExpediente[0].id === 'atual', String(soExpediente.length));

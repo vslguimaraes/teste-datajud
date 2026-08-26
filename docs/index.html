@@ -300,7 +300,7 @@ function avisoHTML(classe, titulo, corpo, itens) {
 
 function movHTML(m) {
   const extra = [m.complementos?.join(', '), m.orgao].filter(Boolean).join(' · ');
-  return `<li class="mov ${m.marco ? 'marco' : ''}">
+  return `<li class="mov">
     <div class="mov-data">${dataBR(m.data)}${m.grau ? ' · ' + esc(grauEmPalavras(m.grau)) : ''}</div>
     <div class="mov-nome">${esc(m.nome)}</div>
     ${extra ? `<div class="mov-extra">${esc(extra)}</div>` : ''}

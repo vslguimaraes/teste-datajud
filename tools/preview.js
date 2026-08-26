@@ -9,7 +9,7 @@ const movs = fonte.movimentos.map(m => ({
   nome: m.nome, codigo: m.codigo, grau: 'G1',
   orgao: m.orgaoJulgador?.nome,
   complementos: (m.complementosTabelados ?? []).map(c => c.nome),
-  marco: ![60,92,123,51,85,581,11383,246,67].includes(m.codigo),
+
 })).sort((a,b) => a.data.localeCompare(b.data));
 
 const ENCONTRADO = { estado:'encontrado', alias:'tjsp', origemDoDado:'datajud', ficha:{

@@ -16,6 +16,16 @@
 //
 // A regra aqui é seletiva: um roteiro fixo de fases, no máximo um evento por
 // fase. A saída fica presa ao tamanho do roteiro, não ao do processo.
+//
+// O roteiro é deliberadamente curto. Duas fases foram removidas depois de
+// ver o resultado no dado real:
+//
+// - Emenda à inicial: relevante para advogado, detalhe para quem lê de fora.
+// - Suspensão: os códigos que existem descrevem o FIM dela ('Cumprimento de
+//   Levantamento da Suspensão'), então o rótulo dizia o contrário do fato.
+//
+// Quando um evento não preenche fase nenhuma, ele não some — continua na
+// lista completa, a um clique.
 
 import type { FichaMovimento } from './datajud.ts';
 
@@ -51,7 +61,6 @@ interface Regra {
 // quando as datas empatam; o peso serve para outra coisa (o corte).
 const ROTEIRO: Regra[] = [
   { id: 'ajuizamento', titulo: 'Ajuizamento', peso: 100, codigos: [26, 36], usar: 'primeiro' },
-  { id: 'emenda', titulo: 'Emenda à inicial', peso: 10, codigos: [15085, 12261] },
   { id: 'liminar', titulo: 'Decisão liminar', peso: 80,
     codigos: [332, 792], regex: /liminar|antecipa[çc][ãa]o de tutela|tutela (de urg[êe]ncia|provis[óo]ria)/i },
   { id: 'saneamento', titulo: 'Saneamento', peso: 40, codigos: [12387], regex: /saneamento/i },
@@ -59,8 +68,6 @@ const ROTEIRO: Regra[] = [
   { id: 'audiencia', titulo: 'Audiência', peso: 50, regex: /audi[êe]ncia/i },
   { id: 'partes', titulo: 'Mudança nas partes', peso: 30,
     codigos: [268, 12308], regex: /morte ou perda da capacidade|substitui[çc][ãa]o\/?sucess[ãa]o|sucess[ãa]o da parte/i },
-  { id: 'suspensao', titulo: 'Suspensão', peso: 25,
-    codigos: [12066], regex: /suspens[ãa]o|sobrestamento/i },
   { id: 'sentenca', titulo: 'Sentença', peso: 95,
     codigos: [193, 196, 198, 219, 220, 221, 237, 385, 461, 471, 11795],
     regex: /senten[çc]a|proced[êe]ncia|improceden|julgado (proceden|improceden)|extin[çc][ãa]o d|homologa[çc][ãa]o de (acordo|transa[çc][ãa]o)/i },
