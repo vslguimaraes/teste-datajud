@@ -71,9 +71,12 @@ const ROTEIRO: Regra[] = [
   { id: 'sentenca', titulo: 'Sentença', peso: 95,
     codigos: [193, 196, 198, 219, 220, 221, 237, 385, 461, 471, 11795],
     regex: /senten[çc]a|proced[êe]ncia|improceden|julgado (proceden|improceden)|extin[çc][ãa]o d|homologa[çc][ãa]o de (acordo|transa[çc][ãa]o)/i },
+  // 'Apelação' foi verificado contra o índice do TJSP: ZERO processos usam
+  // esse nome. O que existe é 'Recurso ...', 'Provimento' e 'Não-Provimento'.
   { id: 'recurso', titulo: 'Recurso', peso: 60,
-    regex: /apela[çc][ãa]o|agravo|embargos de declara|recurso (especial|extraordin[áa]rio|inominado)/i },
-  { id: 'acordao', titulo: 'Decisão em 2º grau', peso: 70, regex: /ac[óo]rd[ãa]o|julgamento colegiado/i },
+    regex: /recurso|agravo|embargos de declara|apela[çc][ãa]o/i },
+  { id: 'acordao', titulo: 'Decisão em 2º grau', peso: 70,
+    regex: /ac[óo]rd[ãa]o|julgamento colegiado|n[ãa]o-?provimento|provimento/i },
   { id: 'transito', titulo: 'Trânsito em julgado', peso: 90, regex: /tr[âa]nsito em julgado/i },
   { id: 'baixa', titulo: 'Arquivamento', peso: 85,
     codigos: [22], regex: /baixa definitiva|arquivamento definitivo/i },
@@ -91,7 +94,10 @@ function casa(m: FichaMovimento, r: Regra): boolean {
  * Monta o resumo do processo a partir dos movimentos já ordenados.
  *
  * Regras que valem sempre, independentemente do teto:
- *  - o ajuizamento entra (é onde a história começa);
+ *  - a linha do tempo sempre começa em algum lugar: se nenhum movimento for
+ *    Distribuição ou Redistribuição, o primeiro registro assume esse papel.
+ *    O processo 0047512-82.2007.8.26.0050 mostrou que a garantia anterior era
+ *    falsa — ela dependia de um movimento casar, e ali nenhum casava;
  *  - o último movimento entra como "situação atual", mesmo sendo expediente,
  *    porque é a pergunta que o cliente realmente faz: onde está agora?
  */
@@ -108,6 +114,17 @@ export function resumirEmFases(movimentos: FichaMovimento[]): Fase[] {
       id: r.id, titulo: r.titulo, peso: r.peso,
       data: m.data, nome: m.nome, grau: m.grau, orgao: m.orgao,
       ocorrencias: casos.length,
+    });
+  }
+
+  // Sem Distribuição nem Redistribuição, o primeiro movimento vira o começo.
+  // Um resumo que abre no meio da história deixa o leitor sem referência.
+  if (!encontradas.some((f) => f.id === 'ajuizamento')) {
+    const primeiro = movimentos[0];
+    encontradas.push({
+      id: 'ajuizamento', titulo: 'Primeiro registro', peso: 100,
+      data: primeiro.data, nome: primeiro.nome, grau: primeiro.grau,
+      orgao: primeiro.orgao, ocorrencias: 1,
     });
   }
 

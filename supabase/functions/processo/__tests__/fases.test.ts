@@ -92,8 +92,37 @@ const soExpediente = resumirEmFases([
   { data: '2025-01-01T00:00:00Z', nome: 'Publicação', codigo: 92, grau: 'G1', complementos: [] },
   { data: '2025-02-01T00:00:00Z', nome: 'Conclusão', codigo: 51, grau: 'G1', complementos: [] },
 ]);
-check('processo so de expediente mostra ao menos a situacao atual',
-  soExpediente.length === 1 && soExpediente[0].id === 'atual', String(soExpediente.length));
+// Passou de 1 para 2 quando o inicio sintetico foi introduzido: mesmo um
+// processo so de expediente ganha um comeco e um agora.
+check('processo so de expediente mostra inicio e situacao atual',
+  soExpediente.length === 2 &&
+  soExpediente[0].titulo === 'Primeiro registro' &&
+  soExpediente[1].id === 'atual', soExpediente.map((f) => f.titulo).join(' | '));
 
 console.log(falhas === 0 ? '\nTODOS OS TESTES PASSARAM' : `\n${falhas} FALHA(S)`);
 process.exit(falhas === 0 ? 0 : 1);
+
+// ---------- regressao: processo sem Distribuicao ----------
+// 0047512-82.2007.8.26.0050 tem 51 movimentos e nenhum com codigo 26 ou 36.
+// A versao anterior abria o resumo na Audiencia, sem inicio.
+const semDistribuicao = resumirEmFases([
+  { data: '2007-05-10T00:00:00Z', nome: 'Recebimento', codigo: 981, grau: 'G1', complementos: [] },
+  { data: '2009-07-03T00:00:00Z', nome: 'Audiência', codigo: 970, grau: 'G1', complementos: [] },
+  { data: '2014-11-01T00:00:00Z', nome: 'Definitivo', codigo: 848, grau: 'G1', complementos: [] },
+]);
+check('sem Distribuicao, o resumo ainda comeca no inicio',
+  semDistribuicao[0].data.startsWith('2007-05-10'), semDistribuicao[0].titulo);
+check('o inicio sintetico e rotulado como Primeiro registro',
+  semDistribuicao[0].titulo === 'Primeiro registro', semDistribuicao[0].titulo);
+check('a audiencia continua aparecendo',
+  semDistribuicao.some((f) => f.id === 'audiencia'));
+
+// Nomes reais de 2o grau no TJSP: 'Apelacao' nao existe no indice.
+const segundoGrau = resumirEmFases([
+  { data: '2011-01-01T00:00:00Z', nome: 'Distribuição', codigo: 26, grau: 'G2', complementos: [] },
+  { data: '2011-06-01T00:00:00Z', nome: 'Recurso Especial repetitivo', codigo: 1, grau: 'G2', complementos: [] },
+  { data: '2011-09-01T00:00:00Z', nome: 'Não-Provimento', codigo: 2, grau: 'G2', complementos: [] },
+]);
+check('reconhece Recurso Especial', segundoGrau.some((f) => f.id === 'recurso'));
+check('reconhece Nao-Provimento como decisao de 2o grau',
+  segundoGrau.some((f) => f.id === 'acordao'));
