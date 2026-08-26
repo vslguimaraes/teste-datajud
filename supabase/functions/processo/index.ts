@@ -30,7 +30,13 @@ function json(corpo: unknown, status = 200, extra: Record<string, string> = {}) 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS });
 
-  const entrada = decodeURIComponent(new URL(req.url).pathname.split('/').filter(Boolean).pop() ?? '');
+  const url = new URL(req.url);
+  const entrada = decodeURIComponent(url.pathname.split('/').filter(Boolean).pop() ?? '');
+
+  // ?fresh=1 ignora o cache e vai direto ao DataJud. Sem isso, testar uma
+  // correcao exige apagar linha no banco a mao, e uma ficha gravada com bug
+  // fica servindo a resposta errada ate o TTL vencer.
+  const semCache = ['1', 'true', 'sim'].includes((url.searchParams.get('fresh') ?? '').toLowerCase());
 
   // 1. Valida o número ANTES de gastar uma requisição na cota do CNJ.
   const p = parseNumero(entrada);
@@ -58,24 +64,24 @@ Deno.serve(async (req) => {
   // 3. Cache. Uma falha aqui nunca derruba a consulta — no pior caso paga uma
   //    chamada a mais ao CNJ, o que é melhor que devolver erro ao usuário.
   try {
-    const { data } = await supabase
+    const guardado = semCache ? null : (await supabase
       .from('consulta_cache')
       .select('estado, ficha, consultado_em, acertos')
       .eq('numero', numero.digitos)
       .gt('expira_em', new Date().toISOString())
-      .maybeSingle();
+      .maybeSingle()).data;
 
-    if (data) {
+    if (guardado) {
       supabase.from('consulta_cache')
-        .update({ acertos: (data.acertos ?? 0) + 1 })
+        .update({ acertos: (guardado.acertos ?? 0) + 1 })
         .eq('numero', numero.digitos)
         .then(() => {}, () => {});
       return json({
-        estado: data.estado,
+        estado: guardado.estado,
         alias: rota.alias,
-        ficha: data.ficha ?? undefined,
+        ficha: guardado.ficha ?? undefined,
         origemDoDado: 'cache',
-        consultadoEm: data.consultado_em,
+        consultadoEm: guardado.consultado_em,
       }, 200, { 'X-Cache': 'HIT' });
     }
   } catch (e) {
@@ -118,7 +124,7 @@ Deno.serve(async (req) => {
       consultado_em: new Date().toISOString(),
       expira_em: expira,
       acertos: 0,
-    });
+    }, { onConflict: 'numero' });
   } catch (e) {
     console.error('nao foi possivel gravar no cache:', e);
   }
