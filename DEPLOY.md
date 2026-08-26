@@ -15,7 +15,7 @@ Região no Brasil importa: a chamada função→DataJud não atravessa o hemisf�
 ## Estado atual
 
 - [x] Tabela `public.consulta_cache` criada, RLS ligado
-- [x] Edge function `processo` publicada (`version 9`, `ACTIVE`, `verify_jwt: true`)
+- [x] Edge function `processo` publicada (`version 10`, `ACTIVE`, `verify_jwt: true`)
 - [x] Secret `DATAJUD_APIKEY` configurado
 - [x] Página no GitHub Pages: https://vslguimaraes.github.io/teste-datajud/
 - [x] 91 aliases validados contra a API real
@@ -119,7 +119,7 @@ Nenhuma continua baseada apenas na leitura da tabela do CNJ.
 | Processo | Movimentos | Fases |
 |---|---|---|
 | 1014505-11.2024.4.01.3900 | 214 | 6 |
-| 0091910-41.0000.8.26.0090 | 142 (G1+G2) | 7 |
+| 0091910-41.0000.8.26.0090 | 142 (G1+G2) | 6 |
 | 1083208-94.2023.8.26.0053 | 78 | 4 |
 | 0294316-41.2011.8.26.0000 | 75 | 5 |
 | 0501524-80.2005.8.26.0266 | 50 | 5 |
