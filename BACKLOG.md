@@ -66,8 +66,12 @@ A técnica para investigar sem chutar está descrita em `DEPLOY.md`: perguntar a
 Secret `ORIGEM_PERMITIDA` = `https://vslguimaraes.github.io`. Hoje aceita
 qualquer origem.
 
-## 4. "Situação atual" redundante quando coincide com outra fase
+## 4. "Situação atual" redundante quando coincide com outra fase — FEITO (version 10)
 
 Em 0091910-41.0000.8.26.0090, `Arquivamento` e `Situação atual` caíram no mesmo
-dia. A segunda linha não acrescenta nada quando o processo já está baixado.
-Suprimir quando a data coincidir com a da fase anterior.
+dia. A segunda linha não acrescentava nada — pior, sugeria que o processo
+arquivado ainda estava em alguma etapa chamada "recebimento".
+
+A "situação atual" passa a ser dispensada quando o último movimento já é uma
+das fases, ou quando cai no mesmo dia da fase mais recente. A vaga liberada
+volta para o teto de 8, então processos com muitas fases ganham espaço.

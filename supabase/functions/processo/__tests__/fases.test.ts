@@ -146,5 +146,47 @@ check('Julgamento em G1 continua sendo Sentenca',
   emG1.find((f) => f.id === 'sentenca')?.titulo === 'Sentença',
   emG1.find((f) => f.id === 'sentenca')?.titulo ?? 'ausente');
 
+
+// ---------- 'Situacao atual' que nao acrescenta nada ----------
+// 0091910-41.0000.8.26.0090: Arquivamento e um Recebimento de rotina caem
+// ambos em 10/06/2026. A segunda linha repetia a data sem informar.
+const base = (nome: string, codigo: number, data: string) =>
+  ({ data, nome, codigo, grau: 'G1', complementos: [] });
+
+const mesmoDia = resumirEmFases([
+  base('Distribuição', 26, '2012-01-18T00:00:00Z'),
+  base('Baixa Definitiva', 22, '2026-06-10T09:00:00Z'),
+  base('Recebimento', 981, '2026-06-10T17:00:00Z'),
+]);
+check('mesmo dia da ultima fase: sem Situacao atual',
+  !mesmoDia.some((f) => f.id === 'atual'), mesmoDia.map((f) => f.titulo).join(' | '));
+check('a fase do dia continua aparecendo',
+  mesmoDia.some((f) => f.id === 'baixa'));
+
+const diaSeguinte = resumirEmFases([
+  base('Distribuição', 26, '2012-01-18T00:00:00Z'),
+  base('Baixa Definitiva', 22, '2026-06-10T09:00:00Z'),
+  base('Recebimento', 981, '2026-07-01T17:00:00Z'),
+]);
+check('dia diferente: Situacao atual permanece',
+  diaSeguinte.some((f) => f.id === 'atual'), diaSeguinte.map((f) => f.titulo).join(' | '));
+
+// A vaga liberada pela supressao nao pode ficar ociosa quando ha fases de sobra.
+const cheio = resumirEmFases([
+  base('Distribuição', 26, '2020-01-01T00:00:00Z'),
+  base('Liminar', 792, '2020-02-01T00:00:00Z'),
+  base('Audiência', 970, '2020-03-01T00:00:00Z'),
+  base('Perito', 12306, '2020-04-01T00:00:00Z'),
+  base('Decisão de Saneamento', 12387, '2020-05-01T00:00:00Z'),
+  base('Substituição/Sucessão da Parte', 12308, '2020-06-01T00:00:00Z'),
+  base('Julgamento', 193, '2020-07-01T00:00:00Z'),
+  base('Trânsito em julgado', 999, '2020-08-01T00:00:00Z'),
+  base('Baixa Definitiva', 22, '2020-09-01T09:00:00Z'),
+  base('Recebimento', 981, '2020-09-01T17:00:00Z'),
+]);
+check('sem a Situacao atual, o teto de 8 e usado por fases de verdade',
+  cheio.length === TETO_FASES && !cheio.some((f) => f.id === 'atual'),
+  `${cheio.length} itens: ${cheio.map((f) => f.titulo).join(' | ')}`);
+
 console.log(falhas === 0 ? '\nTODOS OS TESTES PASSARAM' : `\n${falhas} FALHA(S)`);
 process.exit(falhas === 0 ? 0 : 1);

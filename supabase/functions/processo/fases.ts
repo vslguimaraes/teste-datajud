@@ -147,16 +147,32 @@ export function resumirEmFases(movimentos: FichaMovimento[]): Fase[] {
   }
 
   const ultimo = movimentos[movimentos.length - 1];
-  const jaTemUltimo = encontradas.some((f) => f.data === ultimo.data && f.nome === ultimo.nome);
+
+  // A "situação atual" só se justifica quando conta algo que as fases não
+  // contam. Ela é dispensada em dois casos:
+  //
+  //  - o último movimento JÁ é uma das fases;
+  //  - ele caiu no mesmo dia da fase mais recente. Em
+  //    0091910-41.0000.8.26.0090, o Arquivamento e um 'Recebimento' de rotina
+  //    ocorreram ambos em 10/06/2026, e a segunda linha só repetia a data sem
+  //    acrescentar informação — pior, sugeria que o processo arquivado ainda
+  //    estava em alguma etapa chamada 'recebimento'.
+  const faseMaisRecente = encontradas
+    .reduce<(typeof encontradas)[number] | null>(
+      (a, f) => (a && a.data >= f.data ? a : f), null);
+
+  const mostrarAtual =
+    !encontradas.some((f) => f.data === ultimo.data && f.nome === ultimo.nome) &&
+    faseMaisRecente?.data.slice(0, 10) !== ultimo.data.slice(0, 10);
 
   // Corta pelo peso, preservando o ajuizamento. A vaga da "situação atual"
   // é reservada antes do corte para o último movimento não roubar espaço.
-  const vagas = TETO_FASES - (jaTemUltimo ? 0 : 1);
+  const vagas = TETO_FASES - (mostrarAtual ? 1 : 0);
   const mantidas = encontradas
     .sort((a, b) => (b.id === 'ajuizamento' ? 1 : 0) - (a.id === 'ajuizamento' ? 1 : 0) || b.peso - a.peso)
     .slice(0, vagas);
 
-  if (!jaTemUltimo) {
+  if (mostrarAtual) {
     mantidas.push({
       id: 'atual', titulo: 'Situação atual', peso: -1,
       data: ultimo.data, nome: ultimo.nome, grau: ultimo.grau, orgao: ultimo.orgao,
