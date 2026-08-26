@@ -14,11 +14,25 @@ Região no Brasil importa: a chamada função→DataJud não atravessa o hemisf�
 
 ## Estado atual
 
-- [x] Tabela `public.consulta_cache` criada, RLS ligado, 0 linhas
-- [x] Edge function `processo` publicada (`version 1`, `ACTIVE`, `verify_jwt: true`)
-- [ ] **Secret `DATAJUD_APIKEY`** — pendente, exige ação manual (ver abaixo)
-- [ ] Página no GitHub Pages
-- [ ] `Probe-Aliases.ps1` executado
+- [x] Tabela `public.consulta_cache` criada, RLS ligado
+- [x] Edge function `processo` publicada (`version 5`, `ACTIVE`, `verify_jwt: true`)
+- [x] Secret `DATAJUD_APIKEY` configurado
+- [x] Página no GitHub Pages: https://vslguimaraes.github.io/teste-datajud/
+- [x] 91 aliases validados contra a API real
+- [ ] Secret `ORIGEM_PERMITIDA` (opcional — hoje o CORS está em `*`)
+
+### Verificado em produção
+
+| Tribunal | Número | Resultado |
+|---|---|---|
+| TJSP | `10832089420238260053` | `encontrado`, 78 movimentos, 10 marcos |
+| TJSP | `15408666020248260090` | `encontrado` |
+| TRF1 | `10145051120244013900` | `encontrado` |
+| TRF3 | `50046343320264036301` | `encontrado` |
+| TRF3 | `50362210220234036100` | `nao_indexado` |
+| TJPE | `00038653320268172730` | `nao_indexado` |
+
+Cache confirmado por `acertos > 0` na tabela: consultas repetidas não tocam o CNJ.
 
 ## Configurar o secret (manual)
 
