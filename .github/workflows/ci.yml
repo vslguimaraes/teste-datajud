@@ -1,0 +1,85 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+  schedule:
+    # Uma vez por dia: pega quebra causada por mudanca no DataJud, nao no nosso
+    # codigo — que e o tipo de falha que ninguem percebe ate um tester reclamar.
+    - cron: '0 11 * * *'
+
+jobs:
+  testes:
+    name: Suite (sem rede)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '22' }
+      - name: Rodar suite
+        run: ./run-tests.sh
+      - name: Validar numeros CNJ de referencia
+        run: python3 validar_numero_cnj.py
+
+  fumaca:
+    name: Fumaca (funcao publicada)
+    runs-on: ubuntu-latest
+    # A suite passar nao garante que a funcao publicada esteja de pe: o deploy
+    # e manual e pode ficar para tras do repositorio.
+    steps:
+      - uses: actions/checkout@v4
+      - name: Consultar processo que existe
+        run: |
+          set -euo pipefail
+          resp=$(curl -sS --fail-with-body --max-time 60 \
+            -H "Authorization: Bearer ${{ vars.CHAVE_PUBLICA || 'sb_publishable_dYJqF9DqwZQHmbaho6TkKQ_uPorMPKh' }}" \
+            "${{ vars.ENDPOINT || 'https://edquznquhrcodecmtjlq.supabase.co/functions/v1/processo' }}/10832089420238260053")
+          echo "$resp" | jq -e '.estado == "encontrado"' > /dev/null
+          echo "$resp" | jq -e '.ficha.totalMovimentos > 0' > /dev/null
+          echo "$resp" | jq -e '.ficha.situacao | test("^(em_andamento|julgado|baixado)$")' > /dev/null
+          echo "$resp" | jq -e '.ficha.atualizadoEm | length > 0' > /dev/null
+          # A regressao que ja aconteceu: movimentos fora de ordem cronologica.
+          echo "$resp" | jq -e '[.ficha.movimentos[].data] | . == sort' > /dev/null
+          echo "OK: $(echo "$resp" | jq -r '.ficha.numeroFormatado + " | " + .ficha.situacaoDescricao')"
+
+      - name: Consultar processo fora do indice
+        run: |
+          set -euo pipefail
+          resp=$(curl -sS --fail-with-body --max-time 60 \
+            -H "Authorization: Bearer ${{ vars.CHAVE_PUBLICA || 'sb_publishable_dYJqF9DqwZQHmbaho6TkKQ_uPorMPKh' }}" \
+            "${{ vars.ENDPOINT || 'https://edquznquhrcodecmtjlq.supabase.co/functions/v1/processo' }}/50362210220234036100")
+          echo "$resp" | jq -e '.estado == "nao_indexado"' > /dev/null
+          # A regressao que ja aconteceu: cache devolvendo o corpo mutilado.
+          echo "$resp" | jq -e '.numeroFormatado | length > 0' > /dev/null
+          echo "$resp" | jq -e '.tribunalDeduzido | length > 0' > /dev/null
+          echo "$resp" | jq -e '(.causasPossiveis | length) == 3' > /dev/null
+          echo "$resp" | jq -e 'tostring | contains("undefined") | not' > /dev/null
+          echo "OK: estado nao_indexado com corpo completo"
+
+      - name: Recusar numero invalido
+        run: |
+          set -euo pipefail
+          codigo=$(curl -sS -o /tmp/r.json -w '%{http_code}' --max-time 60 \
+            -H "Authorization: Bearer ${{ vars.CHAVE_PUBLICA || 'sb_publishable_dYJqF9DqwZQHmbaho6TkKQ_uPorMPKh' }}" \
+            "${{ vars.ENDPOINT || 'https://edquznquhrcodecmtjlq.supabase.co/functions/v1/processo' }}/50362210320234036100")
+          [ "$codigo" = "400" ] || { echo "esperado 400, veio $codigo"; cat /tmp/r.json; exit 1; }
+          jq -e '.motivo == "digito_verificador"' /tmp/r.json > /dev/null
+          echo "OK: digito verificador rejeitado sem chamar o CNJ"
+
+  pagina:
+    name: Pagina
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '22' }
+      - name: Instalar Playwright
+        run: npm i -D playwright && npx playwright install --with-deps chromium
+      - name: Renderizar e conferir os estados
+        run: node tools/preview.js
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: capturas
+          path: capturas/

@@ -57,14 +57,25 @@ const NAO_INDEXADO = { estado:'nao_indexado', alias:'trf3',
       await page.click('#botao');
       await page.waitForTimeout(300);
     }
-    await page.screenshot({ path: `/tmp/claude-0/-home-user-teste-datajud/518f6d31-05ed-534f-9f1b-804f170da87f/scratchpad/${nome}.png`, fullPage: !!resposta });
+    await page.screenshot({ path: `capturas/${nome}.png`, fullPage: !!resposta });
     // Confere o que de fato foi renderizado.
     if (resposta?.estado === 'encontrado') {
       const marcos = await page.locator('#linha .mov').count();
+      // Conta a CLASSE, nao o tamanho da lista: #linha ja vem filtrado pelo
+      // dado, entao seu tamanho nao prova que o destaque visual funciona.
+      const destacados = await page.locator('#linha .mov.marco').count();
       const total  = await page.locator('#linha-tudo .mov').count();
       const badge  = await page.locator('.pastilha').innerText();
       const aviso  = await page.locator('.selo.velho').count();
-      console.log(`${nome}: badge="${badge}" marcos=${marcos} total=${total} avisoDefasagem=${aviso}`);
+      console.log(`${nome}: badge="${badge}" marcos=${marcos} destacados=${destacados} total=${total} avisoDefasagem=${aviso}`);
+      // No CI isto precisa reprovar, nao so informar.
+      const problemas = [];
+      if (!badge) problemas.push('sem pastilha de situacao');
+      if (marcos < 1) problemas.push('nenhum marco destacado');
+      if (marcos >= total) problemas.push('marcos nao filtram nada');
+      if (destacados !== marcos) problemas.push(`${marcos} na lista de marcos mas ${destacados} com destaque visual`);
+      if (!aviso) problemas.push('sem aviso de defasagem');
+      if (problemas.length) { console.error(`FALHA em ${nome}: ${problemas.join('; ')}`); process.exitCode = 1; }
       await page.click('#alternar');
       console.log(`  apos alternar: visiveis=${await page.locator('#linha-tudo .mov').count()} rotulo="${await page.locator('#alternar').innerText()}"`);
     }
