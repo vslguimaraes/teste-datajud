@@ -37,7 +37,7 @@ const NAO_INDEXADO = { estado:'nao_indexado', alias:'trf3',
   const url = 'file://' + path.resolve('docs/index.html');
 
   for (const [nome, resposta, numero, tema] of [
-    ['1-inicial',      null,          '',                            'light'],
+    ['1-inicial', null, '', 'light'], ['1-inicial-dark', null, '', 'dark'],
     ['2-encontrado',   ENCONTRADO,    '1083208-94.2023.8.26.0053',   'light'],
     ['3-encontrado-dark', ENCONTRADO, '1083208-94.2023.8.26.0053',   'dark' ],
     ['4-nao-indexado', NAO_INDEXADO,  '5036221-02.2023.4.03.6100',   'light'],
@@ -62,8 +62,8 @@ const NAO_INDEXADO = { estado:'nao_indexado', alias:'trf3',
     if (resposta?.estado === 'encontrado') {
       const marcos = await page.locator('#linha .mov').count();
       const total  = await page.locator('#linha-tudo .mov').count();
-      const badge  = await page.locator('.situacao').innerText();
-      const aviso  = await page.locator('.atualizacao.defasado').count();
+      const badge  = await page.locator('.pastilha').innerText();
+      const aviso  = await page.locator('.selo.velho').count();
       console.log(`${nome}: badge="${badge}" marcos=${marcos} total=${total} avisoDefasagem=${aviso}`);
       await page.click('#alternar');
       console.log(`  apos alternar: visiveis=${await page.locator('#linha-tudo .mov').count()} rotulo="${await page.locator('#alternar').innerText()}"`);

@@ -1,4 +1,4 @@
-// GET /functions/v1/processo/{numero}
+// GET /functions/v1/processo/{numero}[?fresh=1]
 //
 // Recebe só o número do processo — o tribunal é deduzido dos dígitos, como o
 // beta exige. Devolve a ficha estruturada, ou um estado explícito de por que
@@ -7,6 +7,7 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { parseNumero, rotearIndice, SEGMENTOS } from './cnj.ts';
 import { buscar } from './datajud.ts';
+import { corpoResposta } from './resposta.ts';
 
 // TTL do cache. Escolhido alto de propósito: o índice do DataJud é replicado
 // em lote e costuma estar semanas ou meses atrasado, então reconsultar de hora
@@ -34,9 +35,11 @@ Deno.serve(async (req) => {
   const entrada = decodeURIComponent(url.pathname.split('/').filter(Boolean).pop() ?? '');
 
   // ?fresh=1 ignora o cache e vai direto ao DataJud. Sem isso, testar uma
-  // correcao exige apagar linha no banco a mao, e uma ficha gravada com bug
-  // fica servindo a resposta errada ate o TTL vencer.
-  const semCache = ['1', 'true', 'sim'].includes((url.searchParams.get('fresh') ?? '').toLowerCase());
+  // correção exige apagar linha no banco à mão, e uma ficha gravada com bug
+  // fica servindo a resposta errada até o TTL vencer.
+  const semCache = ['1', 'true', 'sim'].includes(
+    (url.searchParams.get('fresh') ?? '').toLowerCase(),
+  );
 
   // 1. Valida o número ANTES de gastar uma requisição na cota do CNJ.
   const p = parseNumero(entrada);
@@ -77,9 +80,7 @@ Deno.serve(async (req) => {
         .eq('numero', numero.digitos)
         .then(() => {}, () => {});
       return json({
-        estado: guardado.estado,
-        alias: rota.alias,
-        ficha: guardado.ficha ?? undefined,
+        ...corpoResposta(guardado.estado, guardado.ficha ?? undefined, rota.alias, numero),
         origemDoDado: 'cache',
         consultadoEm: guardado.consultado_em,
       }, 200, { 'X-Cache': 'HIT' });
@@ -129,28 +130,8 @@ Deno.serve(async (req) => {
     console.error('nao foi possivel gravar no cache:', e);
   }
 
-  // "nao_indexado" nunca vira "processo nao existe": pela API pública é
-  // impossível separar sigilo, número inexistente e lacuna de replicação.
-  if (resultado.estado === 'nao_indexado') {
-    return json({
-      estado: 'nao_indexado',
-      alias: rota.alias,
-      numeroFormatado: numero.formatado,
-      tribunalDeduzido: rota.alias.toUpperCase(),
-      mensagem: 'Este processo não está no índice público do DataJud.',
-      causasPossiveis: [
-        'O processo tramita em segredo de justiça (a API pública só expõe processos sem sigilo).',
-        'O tribunal ainda não replicou este processo para o DataJud.',
-        'O número está correto na forma, mas não corresponde a um processo existente.',
-      ],
-      origemDoDado: 'datajud',
-    }, 200, { 'X-Cache': 'MISS' });
-  }
-
   return json({
-    estado: 'encontrado',
-    alias: rota.alias,
-    ficha: resultado.ficha,
+    ...corpoResposta(resultado.estado, resultado.ficha, rota.alias, numero),
     origemDoDado: 'datajud',
   }, 200, { 'X-Cache': 'MISS' });
 });
