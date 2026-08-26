@@ -94,7 +94,7 @@ const GRAU_RECURSAL = new Set(['G2', 'G3', 'TR', 'TU', 'SUP']);
  *
  * O código 193 chama-se 'Julgamento' e vale como decisão de mérito em
  * qualquer instância — mas chamá-lo de 'Sentença' num documento de 2º grau
- * inverte a história: no processo 0291410-41.0000.8.26.0090 apareciam um
+ * inverte a história: no processo 0091910-41.0000.8.26.0090 apareciam um
  * acórdão em 2012 e uma 'Sentença' em 2026, como se o feito tivesse
  * retrocedido. Em instância recursal, o que houve foi julgamento do recurso.
  */

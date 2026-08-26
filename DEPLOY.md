@@ -15,7 +15,7 @@ Região no Brasil importa: a chamada função→DataJud não atravessa o hemisf�
 ## Estado atual
 
 - [x] Tabela `public.consulta_cache` criada, RLS ligado
-- [x] Edge function `processo` publicada (`version 5`, `ACTIVE`, `verify_jwt: true`)
+- [x] Edge function `processo` publicada (`version 9`, `ACTIVE`, `verify_jwt: true`)
 - [x] Secret `DATAJUD_APIKEY` configurado
 - [x] Página no GitHub Pages: https://vslguimaraes.github.io/teste-datajud/
 - [x] 91 aliases validados contra a API real
@@ -92,3 +92,49 @@ Repita a primeira: a segunda deve vir com `X-Cache: HIT` e `origemDoDado: cache`
 | `limite_excedido` | 429 | Cota compartilhada do CNJ estourada |
 | `erro_upstream` | 502 | DataJud não respondeu como esperado |
 | `erro_configuracao` | 500 | Falta o secret |
+
+## Fases validadas em dado real
+
+As 11 fases do roteiro (`fases.ts`) foram exercitadas com processos reais.
+Nenhuma continua baseada apenas na leitura da tabela do CNJ.
+
+| Fase | Processo que a exercitou |
+|---|---|
+| Ajuizamento | 1083208-94.2023.8.26.0053 |
+| Primeiro registro (sem Distribuição) | 0047512-82.2007.8.26.0050 |
+| Decisão liminar | 1083208-94.2023.8.26.0053 (tutela) e 1014505-11.2024.4.01.3900 (liminar) |
+| Saneamento | 1083208-94.2023.8.26.0053 |
+| Perícia | 1014505-11.2024.4.01.3900 |
+| Audiência | 0047512-82.2007.8.26.0050 |
+| Mudança nas partes | 1014505-11.2024.4.01.3900 |
+| Sentença | 1014505-11.2024.4.01.3900 |
+| Julgamento do recurso (2º grau) | 0091910-41.0000.8.26.0090 |
+| Recurso | 0294316-41.2011.8.26.0000 |
+| Decisão em 2º grau | 0294316-41.2011.8.26.0000 (Provimento em Parte) |
+| Trânsito em julgado | 0501524-80.2005.8.26.0266 |
+| Arquivamento | 0501524-80.2005.8.26.0266 |
+
+### Redução alcançada
+
+| Processo | Movimentos | Fases |
+|---|---|---|
+| 1014505-11.2024.4.01.3900 | 214 | 6 |
+| 0091910-41.0000.8.26.0090 | 142 (G1+G2) | 7 |
+| 1083208-94.2023.8.26.0053 | 78 | 4 |
+| 0294316-41.2011.8.26.0000 | 75 | 5 |
+| 0501524-80.2005.8.26.0266 | 50 | 5 |
+
+A saída não cresce com a entrada: 214 movimentos dão 6 fases, 50 dão 5.
+
+### Descobertas que só o dado real revelou
+
+- Os códigos de expediente mudam por tribunal: Remessa é `123` no TJSP e `982`
+  no TRF1; Decurso de Prazo é `1051` no TRF1; Mandado aparece como `106` e
+  `985` no mesmo processo.
+- `Apelação` não existe como nome de movimento no TJSP — zero processos. Os
+  nomes reais são `Recurso ...`, `Acórdão`, `Provimento` e `Não-Provimento`.
+- O código `193` (`Julgamento`) vale em qualquer instância, então em documento
+  de 2º grau ele é julgamento de recurso, não sentença.
+- O campo `grau` assume também o valor `JE` (Juizado Especial).
+- Consultas ao índice: use `match` no campo `grau`, não `term` — `term` casa o
+  token exato indexado e `G2` é indexado como `g2`.
