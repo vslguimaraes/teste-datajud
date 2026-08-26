@@ -318,7 +318,13 @@ function faseHTML(fa) {
 }
 
 function fichaHTML(f, origem) {
-  const fases = f.fases ?? [];
+  // Fichas gravadas em cache antes do resumo em fases nao trazem o campo.
+  // Sem esta rede, a linha do tempo apareceria vazia ate o TTL de 6h vencer.
+  const fases = (f.fases?.length ? f.fases : null) ?? [...f.movimentos].slice(-5).map((m) => ({
+    id: 'movimento', titulo: m.nome, data: m.data, nome: '', grau: m.grau,
+    orgao: m.orgao, ocorrencias: 1,
+  }));
+  const semResumo = !f.fases?.length;
   const recentes = [...f.movimentos].reverse();
   const d = f.atualizadoHaDias;
   const quando = d === 0 ? 'hoje' : d === 1 ? 'ontem' : `há ${d} dias`;
@@ -362,10 +368,12 @@ function fichaHTML(f, origem) {
     </div>
     <ul class="trilha" id="linha">${fases.map(faseHTML).join('')}</ul>
     <ul class="trilha oculto" id="linha-tudo">${recentes.map(movHTML).join('')}</ul>
-    <p class="resumo">As ${fases.length} etapas que mudaram o rumo do processo,
-      entre ${f.totalMovimentos} movimentos registrados. O restante é
+    <p class="resumo">${semResumo
+      ? `Últimos ${fases.length} movimentos de ${f.totalMovimentos}. O resumo por etapas aparece na próxima atualização desta consulta.`
+      : `As ${fases.length} etapas que mudaram o rumo do processo,`}
+${semResumo ? '' : ` entre ${f.totalMovimentos} movimentos registrados. O restante é
       expediente — petições, publicações, conclusões, certidões — que não
-      altera o estado do processo.</p>
+      altera o estado do processo.`}</p>
   </section>
 
   <p class="origem">${origem === 'cache' ? 'Resposta do cache.' : 'Consultado agora no DataJud.'}</p>`;
